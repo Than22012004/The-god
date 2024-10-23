@@ -135,7 +135,7 @@ def get_phones_links():
 
 
 # # Tao dictionary chua tt ban nhac
-#         phones = {'Ten': name, 'Gia': gia,'Hinh_anh': pic,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
+#         photnes = {'Ten': name, 'Gia': gia,'Hinh_anh': pic,'Kich_huoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
 #                   'Camera_truoc':cam_truoc,'Camera_sau':cam_sau,'Chipset':chip_set,'Cong_nghe_NFC':NFC,'Dung_luong_ram':ram,'Bo_nho_trong':rom,
 #                   'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
 
@@ -159,7 +159,8 @@ def get_phones_info(link):
 
         # Lay gia san pham
         try:
-            gia = driver.find_element(By.CLASS_NAME, "tpt---sale-price").text
+            price = driver.find_element(By.XPATH, "//div[contains(@class, 'tpt---sale-price')]//p").text
+
         except :
             gia = ""
         # Lay hinh anh
