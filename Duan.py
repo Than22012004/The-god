@@ -1,24 +1,24 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from pymongo import MongoClient
+from selenium.webdriver.common.keys import Keys
 import time
-from pymongo import MongoClient  # Thêm pymongo để kết nối với MongoDB
-
 
 # Cấu hình Chrome để chạy nền
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-client = MongoClient("mongodb://localhost:27017/") 
+
+# Kết nối với MongoDB
+client = MongoClient("mongodb://localhost:27017/")
 db = client['phone_database']
 collection = db['phone_collection']
 
-def get_element_text(driver, xpath):
+def lay_text_phan_tu(driver, xpath):
     try:
         element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, xpath))
@@ -27,45 +27,53 @@ def get_element_text(driver, xpath):
     except Exception:
         return "Không tìm thấy"
 
-def get_phones_links():
+def dong_popup(driver):
+    try:
+        close_button = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, "cancel-button-top"))
+        )
+        close_button.click()
+        print("Đã đóng popup.")
+    except TimeoutException:
+        print("Không tìm thấy popup; tiếp tục.")
+
+def lay_cac_link_dien_thoai():
     links = []
     driver = webdriver.Chrome(options=chrome_options)
     url = "https://cellphones.com.vn/mobile.html"
+
     try:
         driver.get(url)
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "a")))
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "a")))
         
-        
-        body = driver.find_element(By.TAG_NAME, "body")
-        scroll_pause_time = 2  # Thời gian tạm dừng khi cuộn
-        last_height = driver.execute_script("return document.body.scrollHeight")
-
+        # Cuộn liên tục để tải thêm sản phẩm cho đến khi "Xem thêm" không còn khả dụng
         while True:
-            # Cuộn trang xuống cuối
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            try:
+                # Cố gắng đóng bất kỳ lớp phủ nào
+                overlay = driver.find_element(By.CLASS_NAME, "header-overlay")
+                driver.execute_script("arguments[0].style.display = 'none';", overlay)
+            except NoSuchElementException:
+                pass
 
-            # Chờ trang tải
-            time.sleep(scroll_pause_time)
-
-            # Tính toán chiều cao mới sau khi cuộn
-            new_height = driver.execute_script("return document.body.scrollHeight")
-            
-            # Nếu không có sự thay đổi về chiều cao trang, nghĩa là đã cuộn tới cuối
-            if new_height == last_height:
+            try:
+                # Nhấp vào "Xem thêm" để tải thêm sản phẩm
+                WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Xem thêm')]"))
+                ).click()
+                time.sleep(2)  # Chờ sản phẩm tải lên
+            except TimeoutException:
+                print("Đã tải hết sản phẩm.")
                 break
-            last_height = new_height
 
-        # Sau khi cuộn xuống hết trang, thu thập các liên kết sản phẩm
+        # Thu thập các liên kết sản phẩm
         list_links = driver.find_elements(By.CLASS_NAME, "product-info")
-
         for item in list_links:
             try:
                 a_tag = item.find_element(By.TAG_NAME, "a")
                 link = a_tag.get_attribute("href")
-                if link not in links:  # Đảm bảo không thu thập trùng lặp
+                if link not in links:
                     links.append(link)
-            except Exception as e:
-                print(f"Lỗi khi lấy liên kết sản phẩm: {e}")
+            except NoSuchElementException:
                 continue
 
         print(f"Tổng số liên kết sản phẩm tìm được: {len(links)}")
@@ -77,65 +85,43 @@ def get_phones_links():
         driver.quit()
 
     return links
-    
-def get_phones_info(link):
+
+def lay_thong_tin_dien_thoai(link):
+    driver = webdriver.Chrome(options=chrome_options)
     try:
-            
-        # Khoi tao webdriver
-        driver = webdriver.Chrome(options=chrome_options)
-
-        # Mở trang
         driver.get(link)
+        dong_popup(driver)
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "h1")))
 
-        # Đợi trang tải
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "h1")))
+        # Cuộn trang để đảm bảo tất cả thông tin sản phẩm được tải
+        body = driver.find_element(By.TAG_NAME, "body")
+        for _ in range(50):
+            body.send_keys(Keys.PAGE_DOWN)
+            time.sleep(0.1)
+
+        # Lấy thông tin sản phẩm
+        ten = lay_text_phan_tu(driver, "//h1")
+        Camtruoc = lay_text_phan_tu(driver, "//li[p[text()='Camera trước']]/div")
+        KichThuocManHinh = lay_text_phan_tu(driver, "//li[p[text()='Kích thước màn hình']]/div")
+        CamSau = lay_text_phan_tu(driver, "//li[p[text()='Camera sau']]/div")
+        Chip = lay_text_phan_tu(driver, "//li[p[text()='Chipset']]/div")
+        Congnghe = lay_text_phan_tu(driver, "//li[p[text()='Công nghệ NFC']]/div")
+        DungluongRam = lay_text_phan_tu(driver, "//li[p[text()='Dung lượng RAM']]/div")
+        BoNho = lay_text_phan_tu(driver, "//li[p[text()='Bộ nhớ trong']]/div")
+        Pin = lay_text_phan_tu(driver, "//li[p[text()='Pin']]/div")
+        Sim = lay_text_phan_tu(driver, "//li[p[text()='Thẻ SIM']]/div")
+        Dophangiai = lay_text_phan_tu(driver, "//li[p[text()='Độ phân giải màn hình']]/div")
+        Tinhmanhinh = lay_text_phan_tu(driver, "//li[p[text()='Công nghệ màn hình']]/div")
+        Cpu = lay_text_phan_tu(driver, "//li[p[text()='Loại CPU']]/div")
+
         
-        scroll_pause_time = 2  # Tạm dừng 3 giây sau mỗi lần cuộn
-        scroll_step = 1500  # Cuộn xuống 500px mỗi lần
-        last_height = driver.execute_script("return document.body.scrollHeight")
-        
-        while True:
-            # Cuộn xuống từng phần của trang
-            driver.execute_script(f"window.scrollBy(0, {scroll_step});")
-
-            # Chờ cho nội dung tải thêm
-            time.sleep(scroll_pause_time)
-
-            # Tính toán chiều cao mới của trang sau khi cuộn
-            new_height = driver.execute_script("return document.body.scrollHeight")
-
-            # Nếu không có sự thay đổi về chiều cao, nghĩa là đã cuộn tới cuối trang
-            if new_height == last_height:
-                break
-            last_height = new_height
-        # Lấy tên sản phẩm
-        name = get_element_text(driver, "//h1")
-
-        # Các thông số khác
-        Camtruoc = get_element_text(driver, "//li[p[text()='Camera trước']]/div")
-        KichThuocManHinh = get_element_text(driver, "//li[p[text()='Kích thước màn hình']]/div")
-        CamSau = get_element_text(driver, "//li[p[text()='Camera sau']]/div")
-        Chip = get_element_text(driver, "//li[p[text()='Chipset']]/div")
-        Congnghe = get_element_text(driver, "//li[p[text()='Công nghệ NFC']]/div")
-        DungluongRam = get_element_text(driver, "//li[p[text()='Dung lượng RAM']]/div")
-        BoNho = get_element_text(driver, "//li[p[text()='Bộ nhớ trong']]/div")
-        Pin = get_element_text(driver, "//li[p[text()='Pin']]/div")
-        Sim = get_element_text(driver, "//li[p[text()='Thẻ SIM']]/div")
-        Dophangiai = get_element_text(driver, "//li[p[text()='Độ phân giải màn hình']]/div")
-        Tinhmanhinh = get_element_text(driver, "//li[p[text()='Công nghệ màn hình']]/div")
-        Cpu = get_element_text(driver, "//li[p[text()='Loại CPU']]/div")
-
-        # Lấy giá sản phẩm
         try:
-            price = driver.find_element(By.XPATH, "//span[@class='text-price']").text
+            gia = driver.find_element(By.XPATH, "//span[@class='text-price']").text
         except NoSuchElementException:
-            try:
-                price = driver.find_element(By.XPATH, "(//p[@class='tpt---sale-price'])[2]").text
-            except:
-                price = "Không tìm thấy giá"
+            gia = "Giá liên hệ"
 
-        product_info = {
-            "Tên sản phẩm": name,
+        thong_tin_san_pham = {
+            "Tên sản phẩm": ten,
             "Camera trước": Camtruoc,
             "Kích thước màn hình": KichThuocManHinh,
             "Camera sau": CamSau,
@@ -148,11 +134,13 @@ def get_phones_info(link):
             "Độ phân giải màn hình": Dophangiai,
             "Công nghệ màn hình": Tinhmanhinh,
             "Loại CPU": Cpu,
-            "Giá sản phẩm": price,
+            "Giá sản phẩm": gia,
         }
-        collection.insert_one(product_info)
-        print(f"Đã lưu sản phẩm: {name}")
-        return product_info
+
+        # Lưu vào MongoDB
+        collection.insert_one(thong_tin_san_pham)
+        print(f"Đã lưu sản phẩm: {ten}")
+        return thong_tin_san_pham
 
     except Exception as e:
         print(f"Lỗi khi truy cập {link}: {e}")
@@ -160,12 +148,11 @@ def get_phones_info(link):
     finally:
         driver.quit()
 
-# Sử dụng các hàm
-phone_links = get_phones_links()
-print(f"Thu thập được {len(phone_links)} liên kết")
+# Thực thi quá trình lấy dữ liệu
+link_dien_thoai = lay_cac_link_dien_thoai()
+print(f"Thu thập được {len(link_dien_thoai)} liên kết")
 
-# Lấy thông tin từng sản phẩm
-for link in phone_links:
-    info = get_phones_info(link)
-    if info:
-        print(info)
+for link in link_dien_thoai:
+    thong_tin = lay_thong_tin_dien_thoai(link)
+    if thong_tin:
+        print(thong_tin)
