@@ -1,4 +1,3 @@
-from lxml.etree import XPath
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -11,7 +10,6 @@ from selenium.webdriver.remote.webelement import WebElement
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
-import matplotlib.pyplot as plt
 import string
 import time
 from pymongo import MongoClient

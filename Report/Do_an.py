@@ -25,9 +25,17 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["phone_database"]
 phones_collection = db["phones"]
 
+# Khởi tạo kết nối MongoDB
+client = MongoClient("mongodb://localhost:27017/")
+db = client["phone_database"]
+phones_collection = db["phones"]
 
 # Khởi tạo DataFrame
+<<<<<<< HEAD
 d = pd.DataFrame({'Ten': [], 'Gia': [],'Tinh_trang':[], 'Kich_thuoc_man_hinh': [], 'Cong_nghe_man_hinh': [], 'Camera_truoc': [], 'Camera_sau': [], 'Chipset': [], 'Cong_nghe_NFC': [], 'Dung_luong_ram': [], 'Bo_nho_trong': [], 'Dung_luong_pin': [], 'The_SIM': [], 'Do_phan_giai_man_hinh': [], 'Tinh_nang_man_hinh': [], 'Loai_CPU': []})
+=======
+d = pd.DataFrame({'Ten': [], 'Gia': [], 'Kich_thuoc_man_hinh': [], 'Cong_nghe_man_hinh': [], 'Camera_truoc': [], 'Camera_sau': [], 'Chipset': [], 'Cong_nghe_NFC': [], 'Dung_luong_ram': [], 'Bo_nho_trong': [], 'Dung_luong_pin': [], 'The_SIM': [], 'Do_phan_giai_man_hinh': [], 'Tinh_nang_man_hinh': [], 'Loai_CPU': []})
+>>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
 
 
 
@@ -41,19 +49,27 @@ def get_phones_links():
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "a")))
         body = driver.find_element(By.TAG_NAME, "body")
 
+<<<<<<< HEAD
        #Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
+=======
+        Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
+>>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
         for k in range(60):  # Số lần thử click "Xem thêm" và tải thêm sản phẩm
             try:
                 # Lấy tất cả các button trên trang
                 buttons = driver.find_elements(By.TAG_NAME, "a")
-
+        
                 try:
                     # Xóa overlay nếu có
                     overlay = driver.find_element(By.CLASS_NAME, "header-overlay")
                     driver.execute_script("arguments[0].style.display = 'none';", overlay)
                 except NoSuchElementException:
                     print("Không tìm thấy phần tử che khuất, tiếp tục nhấp vào nút 'Xem thêm'.")
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
                 try:
                     # Thử click vào nút 'Xem thêm'
                     WebDriverWait(driver, 10, poll_frequency=1).until(
@@ -90,11 +106,18 @@ def get_phones_links():
 
     return links
 # Hàm thêm sản phẩm vào MongoDB
+<<<<<<< HEAD
 def them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
     phone_data = {
         "Ten": name,
         "Gia": gia,
         "Tinh_trang":stock_count,
+=======
+def them(name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
+    phone_data = {
+        "Ten": name,
+        "Gia": gia,
+>>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
         "Kich_thuoc_man_hinh": kich_thuoc,
         "Cong_nghe_man_hinh": CN_manhinh,
         "Camera_truoc": cam_truoc,
@@ -243,6 +266,7 @@ def get_phones_info(link):
             cpu = driver.find_element(By.XPATH,
                                       "//li[p[text()='Loại CPU']]/div").text
         except:
+<<<<<<< HEAD
             cpu = "không có thông tin"
         # Tạo dictionary chứa thông tin sản phẩm
         phones = {'Ten': name, 'Gia': gia,'Tinh_trang':stock_count,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
@@ -250,6 +274,18 @@ def get_phones_info(link):
                   'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
         them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu)
         return phones
+=======
+            cpu = ""
+
+
+        # # Tao dictionary chua tt dien thoai
+        # phones = {'Ten': name, 'Gia': gia,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
+        #           'Camera_truoc':cam_truoc,'Camera_sau':cam_sau,'Chipset':chip_set,'Cong_nghe_NFC':NFC,'Dung_luong_ram':ram,'Bo_nho_trong':rom,
+        #           'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
+        them(name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu)
+        return name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu
+
+>>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
     except Exception as e:
         print(f"Lỗi khi truy cập {link}: {e}")
         return None
