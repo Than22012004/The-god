@@ -11,17 +11,23 @@ from selenium.webdriver.remote.webelement import WebElement
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
+import matplotlib.pyplot as plt
 import string
-#import threading
 import time
+from pymongo import MongoClient
 # Cấu hình Chrome để chạy nền
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-notifications")  # Tắt thông báo
+# Khởi tạo kết nối MongoDB
+client = MongoClient("mongodb://localhost:27017/")
+db = client["phone_database"]
+phones_collection = db["phones"]
 
 
-d = pd.DataFrame({'Ten': [], 'Gia': [],'Kich_thuoc_man_hinh': [],'Cong_nghe_man_hinh': [],'Camera_truoc': [],'Camera_sau': [],'Chipset': [],'Cong_nghe_NFC': [],'Dung_luong_ram': [],'Bo_nho_trong': [],
-                  'Dung_luong_pin': [],'The_SIM': [],'Do_phan_giai_man_hinh': [],'Tinh_nang_man_hinh': [],'Loai_CPU': [],})
+# Khởi tạo DataFrame
+d = pd.DataFrame({'Ten': [], 'Gia': [],'Tinh_trang':[], 'Kich_thuoc_man_hinh': [], 'Cong_nghe_man_hinh': [], 'Camera_truoc': [], 'Camera_sau': [], 'Chipset': [], 'Cong_nghe_NFC': [], 'Dung_luong_ram': [], 'Bo_nho_trong': [], 'Dung_luong_pin': [], 'The_SIM': [], 'Do_phan_giai_man_hinh': [], 'Tinh_nang_man_hinh': [], 'Loai_CPU': []})
 
 
 
@@ -35,7 +41,7 @@ def get_phones_links():
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "a")))
         body = driver.find_element(By.TAG_NAME, "body")
 
-        # Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
+       #Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
         for k in range(60):  # Số lần thử click "Xem thêm" và tải thêm sản phẩm
             try:
                 # Lấy tất cả các button trên trang
@@ -48,30 +54,22 @@ def get_phones_links():
                 except NoSuchElementException:
                     print("Không tìm thấy phần tử che khuất, tiếp tục nhấp vào nút 'Xem thêm'.")
 
-                # # Duyệt qua từng button và tìm nút "Xem thêm"
-                # for button in buttons:
-                #     if "Xem thêm" in button.text and "sản phẩm" in button.text:
-                #         button.click()
-                #         time.sleep(5)  # Chờ thêm sản phẩm tải lên
-                #         break  # Thoát vòng lặp nếu đã click thành công
                 try:
                     # Thử click vào nút 'Xem thêm'
                     WebDriverWait(driver, 10, poll_frequency=1).until(
                         EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Xem thêm')]"))
                     ).click()
                 except TimeoutException:
-                    pass
+                    print("Không còn nút 'Xem thêm' hoặc hết sản phẩm.")
             except Exception as e:
-                pass
+                print(f"Lỗi khi nhấn vào nút xem thêm {e}")
 
         # Tiếp tục di chuyển xuống dưới trang để tải sản phẩm
         for i in range(50):
             body.send_keys(Keys.ARROW_DOWN)
             time.sleep(0.01)
-
         # Lấy các liên kết sau khi đã cuộn và nhấp vào "Xem thêm"
         list_links = driver.find_elements(By.CLASS_NAME, "product-info")
-
         for item in list_links:
             try:
                 a_tag = item.find_element(By.TAG_NAME, "a")
@@ -91,77 +89,28 @@ def get_phones_links():
         driver.quit()
 
     return links
-# Tạo cơ sở dữ liệu
-import sqlite3
+# Hàm thêm sản phẩm vào MongoDB
+def them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
+    phone_data = {
+        "Ten": name,
+        "Gia": gia,
+        "Tinh_trang":stock_count,
+        "Kich_thuoc_man_hinh": kich_thuoc,
+        "Cong_nghe_man_hinh": CN_manhinh,
+        "Camera_truoc": cam_truoc,
+        "Camera_sau": cam_sau,
+        "Chipset": chip_set,
+        "Cong_nghe_NFC": NFC,
+        "Dung_luong_ram": ram,
+        "Bo_nho_trong": rom,
+        "Dung_luong_pin": pin,
+        "The_SIM": sim,
+        "Do_phan_giai_man_hinh": do_phan_giai,
+        "Tinh_nang_man_hinh": tinh_nang_mh,
+        "Loai_CPU": cpu
+    }
+    phones_collection.insert_one(phone_data)  # Lưu vào MongoDB
 
-# Create the database and table
-conn = sqlite3.connect('phones.db')
-c = conn.cursor()
-try:
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS phones (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Ten TEXT,
-            Gia TEXT,
-            Kich_thuoc_man_hinh TEXT,
-            Cong_nghe_man_hinh TEXT,
-            Camera_truoc TEXT,
-            Camera_sau TEXT,
-            Chipset TEXT,
-            Cong_nghe_NFC TEXT,
-            Dung_luong_ram TEXT,
-            Bo_nho_trong TEXT,
-            Dung_luong_pin TEXT,
-            The_SIM TEXT,
-            Do_phan_giai_man_hinh TEXT,
-            Tinh_nang_man_hinh TEXT,
-            Loai_CPU TEXT
-        )
-    ''')
-
-    # Confirm the table structure
-    c.execute("SELECT * FROM phones")
-    records = c.fetchall()
-except Exception as e:
-    print(e)
-finally:
-    conn.commit()
-    conn.close()
-
-# ham them
-def them(name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
-    conn = sqlite3.connect('phones.db')
-    c = conn.cursor()
-    # them du lieu vao database
-    c.execute('''
-        INSERT INTO phones (
-            Ten, Gia, Kich_thuoc_man_hinh, Cong_nghe_man_hinh, Camera_truoc, Camera_sau, Chipset,
-            Cong_nghe_NFC, Dung_luong_ram, Bo_nho_trong, Dung_luong_pin, The_SIM, 
-            Do_phan_giai_man_hinh, Tinh_nang_man_hinh, Loai_CPU
-        ) VALUES (
-            :Ten, :Gia, :Kich_thuoc_man_hinh, :Cong_nghe_man_hinh, :Camera_truoc, :Camera_sau, :Chipset,
-            :Cong_nghe_NFC, :Dung_luong_ram, :Bo_nho_trong, :Dung_luong_pin, :The_SIM, 
-            :Do_phan_giai_man_hinh, :Tinh_nang_man_hinh, :Loai_CPU
-        )
-    ''', {
-        'Ten': name,
-        'Gia': gia,
-        'Kich_thuoc_man_hinh': kich_thuoc,
-        'Cong_nghe_man_hinh': CN_manhinh,
-        'Camera_truoc': cam_truoc,
-        'Camera_sau': cam_sau,
-        'Chipset': chip_set,
-        'Cong_nghe_NFC': NFC,
-        'Dung_luong_ram': ram,
-        'Bo_nho_trong': rom,
-        'Dung_luong_pin': pin,
-        'The_SIM': sim,
-        'Do_phan_giai_man_hinh': do_phan_giai,
-        'Tinh_nang_man_hinh': tinh_nang_mh,
-        'Loai_CPU': cpu
-    })
-    conn.commit()
-    conn.close()
 
 
 
@@ -195,24 +144,23 @@ def get_phones_info(link):
             gia = driver.find_element(By.CLASS_NAME, "tpt---price").text
         except:
             try:
-                # Nếu vẫn không tìm thấy,thu voi "text-price"
-                gia = driver.find_element(By.CLASS_NAME, 'product__price--show').text
+                # Nếu vẫn không tìm thấy,thử với "text-price"
+                gia = driver.find_element(By.XPATH, "tpt---sale-price").text
             except :
                 try:
                     # Nếu không tìm thấy, thử với "tpt---sale-price"
-                    gia = driver.find_element(By.CLASS_NAME, "tpt---sale-price").text
+                    gia = driver.find_element(By.XPATH, '//*[@id="blockProductCTA"]/div[2]/p/span').text
                 except:
-                    # Nếu không tìm thấy ở bất kỳ lớp nào, đặt giá trị mặc định là ""
-                    gia = ""
-        # # Lay hinh anh
-        # try:
-        #     pic = driver.find_element(By.XPATH, '//*[@id="v2Gallery"]/div/img').get_attribute("src")
-        # except :
-        #     # Trường hợp ngoại lệ khi không tìm thấy phần tử ở XPATH đầu tiên
-        #     try:
-        #         pic = driver.find_element(By.XPATH, '//*[@id="blockProductCTA"]/div[1]/div[2]/div/div[1]/div/img)').get_attribute("src")
-        #     except :
-        #         pic = ""
+                    try:
+                        # Nếu không tìm thấy, thử với "tpt---sale-price"
+                        gia = driver.find_element(By.CLASS_NAME, 'product__price--show').text
+                    except:
+                        gia = ""
+        # Số cửa hàng có hàng sẵn box-on-stock-count
+        try:
+            stock_count = driver.find_element(By.CLASS_NAME, "box-on-stock-count").text
+        except:
+            stock_count = ""
 
         # Thong so ky thuat
 
@@ -221,90 +169,87 @@ def get_phones_info(link):
             kich_thuoc = driver.find_element(By.XPATH, "//li[p[text()='Kích thước màn hình']]/div").text
 
         except:
-            kich_thuoc = ""
+            kich_thuoc = "không có thông tin"
 
         # Cong nghe man hinh
         try:
             CN_manhinh = driver.find_element(By.XPATH, "//li[p[text()='Công nghệ màn hình']]/div").text
         except:
-            CN_manhinh = ""
+            CN_manhinh = "không có thông tin"
         # Camera truoc
         try:
             cam_truoc = driver.find_element(By.XPATH,'//li[p[text()="Camera trước"]]/div').text
 
         except:
-            cam_truoc = ""
+            cam_truoc = "không có thông tin"
         # Camera sau
         try:
             cam_sau = driver.find_element(By.XPATH,"//li[p[text()='Camera sau']]/div").text
         except:
-            cam_sau = ""
+            cam_sau = "không có thông tin"
         #Chipset
         try:
             chip_set = driver.find_element(By.XPATH,"//li[p[text()='Chipset']]/div").text
         except:
-            chip_set = ""
+            chip_set = "không có thông tin"
 
 
         #Cong nghe NFC
         try:
             NFC = driver.find_element(By.XPATH,"//li[p[text()='Công nghệ NFC']]/div").text
         except:
-            NFC = ""
+            NFC = "không có thông tin"
 
         #Dung luong ram
         try:
             ram = driver.find_element(By.XPATH,
                                       "//li[p[text()='Dung lượng RAM']]/div").text
         except:
-            ram = ""
+            ram = "không có thông tin"
 
         #Bo nho trong
         try:
             rom = driver.find_element(By.XPATH,
                                       "//li[p[text()='Bộ nhớ trong']]/div").text
         except:
-            rom = ""
+            rom = "không có thông tin"
 
         #Pin
         try:
             pin = driver.find_element(By.XPATH,
                                       "//li[p[text()='Pin']]/div").text
         except:
-            pin = ""
+            pin = "không có thông tin"
         #The SIM
         try:
             sim = driver.find_element(By.XPATH,
                                       "//li[p[text()='Thẻ SIM']]/div").text
         except:
-            sim = ""
+            sim = "không có thông tin"
         # Do phan giai man hinh
         try:
             do_phan_giai = driver.find_element(By.XPATH,"//li[p[text()='Độ phân giải màn hình']]/div").text
         except:
-            do_phan_giai = ""
+            do_phan_giai = "không có thông tin"
         #Tinh nang man hinh
         try:
             tinh_nang_mh = driver.find_element(By.XPATH,
                                       "//li[p[text()='Tính năng màn hình']]/div").text
         except:
-            tinh_nang_mh = ""
+            tinh_nang_mh = "không có thông tin"
 
         #Loai CPU
         try:
             cpu = driver.find_element(By.XPATH,
                                       "//li[p[text()='Loại CPU']]/div").text
         except:
-            cpu = ""
-
-
-        # # Tao dictionary chua tt ban nhac
-        # phones = {'Ten': name, 'Gia': gia,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
-        #           'Camera_truoc':cam_truoc,'Camera_sau':cam_sau,'Chipset':chip_set,'Cong_nghe_NFC':NFC,'Dung_luong_ram':ram,'Bo_nho_trong':rom,
-        #           'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
-        them(name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu)
-        return name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu
-
+            cpu = "không có thông tin"
+        # Tạo dictionary chứa thông tin sản phẩm
+        phones = {'Ten': name, 'Gia': gia,'Tinh_trang':stock_count,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
+                  'Camera_truoc':cam_truoc,'Camera_sau':cam_sau,'Chipset':chip_set,'Cong_nghe_NFC':NFC,'Dung_luong_ram':ram,'Bo_nho_trong':rom,
+                  'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
+        them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu)
+        return phones
     except Exception as e:
         print(f"Lỗi khi truy cập {link}: {e}")
         return None
@@ -312,38 +257,43 @@ def get_phones_info(link):
     finally:
         driver.quit()
 
-
 phone_links = get_phones_links()
 print(f"Thu thập được {len(phone_links)} ")
 
 # su dung ThreadPoolExecutorde xu li cac thong tin song song
 with ThreadPoolExecutor(max_workers=3) as executor:
     results = list(executor.map(get_phones_info, phone_links))
+# them ket qua vao DataFrame
+for phones in results:
+    if phones:
+        d = pd.concat([d, pd.DataFrame([phones])], ignore_index=True)
 
-# # them ket qua vao DataFrame
-# for phones in results:
-#     if phones:
-#         d = pd.concat([d, pd.DataFrame([phones])], ignore_index=True)
-
-# file_name = 'phones.xlsx'
-# d.to_excel(file_name, index=False)
+file_name = 'phones1.xlsx'
+d.to_excel(file_name, index=False)
 print('Data đã được ghi thành công!!!!.')
 
+# 1. Đọc dữ liệu từ file Excel
+file_path = 'phones.xlsx'  # Đặt tên tệp Excel của bạn ở đây
+df = pd.read_excel(file_path)
 
+# 2. Làm sạch dữ liệu trong cột 'Gia'
+def clean_price(price):
+    # Chuyển về chuỗi nếu dữ liệu không phải chuỗi
+    price = str(price)
 
+    # Loại bỏ các chuỗi không liên quan
+    cleaned_price = (
+        price.replace('Giá niêm yết:', '')
+             .replace('Khi thu cũ lên đời', '')
+             .strip()  # Xóa khoảng trắng thừa ở đầu/cuối
+    )
 
-# def popup_watcher(driver):
-#     while True:
-#         try:
-#             # Kiểm tra và đóng pop-up
-#             close_popup = driver.find_element(By.CLASS_NAME, "cancel-button-top")
-#             close_popup.click()
-#             print("Pop-up đã được đóng.")
-#         except NoSuchElementException:
-#             pass  # Không tìm thấy pop-up, tiếp tục kiểm tra
-#         time.sleep(1)  # Kiểm tra mỗi giây
-#
-# # Khởi động thread theo dõi pop-up
-# popup_thread = threading.Thread(target=popup_watcher, args=(driver,))
-# popup_thread.daemon = True
-# popup_thread.start()
+    return cleaned_price
+
+# Áp dụng hàm clean_price cho cột 'Gia'
+df['Gia'] = df['Gia'].apply(clean_price)
+#Update lại file sau khi đã lọc dữ liệu
+df.to_excel('phones.xlsx', index=False)
+
+print(df[['Ten', 'Gia']].head())
+
