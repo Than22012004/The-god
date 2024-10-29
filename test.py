@@ -39,28 +39,28 @@ def get_phones_links():
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "a")))
         body = driver.find_element(By.TAG_NAME, "body")
 
-       #Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
-        for k in range(60):  # Số lần thử click "Xem thêm" và tải thêm sản phẩm
-            try:
-                # Lấy tất cả các button trên trang
-                buttons = driver.find_elements(By.TAG_NAME, "a")
-
-                try:
-                    # Xóa overlay nếu có
-                    overlay = driver.find_element(By.CLASS_NAME, "header-overlay")
-                    driver.execute_script("arguments[0].style.display = 'none';", overlay)
-                except NoSuchElementException:
-                    print("Không tìm thấy phần tử che khuất, tiếp tục nhấp vào nút 'Xem thêm'.")
-
-                try:
-                    # Thử click vào nút 'Xem thêm'
-                    WebDriverWait(driver, 10, poll_frequency=1).until(
-                        EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Xem thêm')]"))
-                    ).click()
-                except TimeoutException:
-                    print("Không còn nút 'Xem thêm' hoặc hết sản phẩm.")
-            except Exception as e:
-                print(f"Lỗi khi nhấn vào nút xem thêm {e}")
+       # #Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
+       #  for k in range(60):  # Số lần thử click "Xem thêm" và tải thêm sản phẩm
+       #      try:
+       #          # Lấy tất cả các button trên trang
+       #          buttons = driver.find_elements(By.TAG_NAME, "a")
+       #
+       #          try:
+       #              # Xóa overlay nếu có
+       #              overlay = driver.find_element(By.CLASS_NAME, "header-overlay")
+       #              driver.execute_script("arguments[0].style.display = 'none';", overlay)
+       #          except NoSuchElementException:
+       #              print("Không tìm thấy phần tử che khuất, tiếp tục nhấp vào nút 'Xem thêm'.")
+       #
+       #          try:
+       #              # Thử click vào nút 'Xem thêm'
+       #              WebDriverWait(driver, 10, poll_frequency=1).until(
+       #                  EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Xem thêm')]"))
+       #              ).click()
+       #          except TimeoutException:
+       #              print("Không còn nút 'Xem thêm' hoặc hết sản phẩm.")
+       #      except Exception as e:
+       #          print(f"Lỗi khi nhấn vào nút xem thêm {e}")
 
         # Tiếp tục di chuyển xuống dưới trang để tải sản phẩm
         for i in range(50):
@@ -270,28 +270,28 @@ file_name = 'phones1.xlsx'
 d.to_excel(file_name, index=False)
 print('Data đã được ghi thành công!!!!.')
 
-# 1. Đọc dữ liệu từ file Excel
-file_path = 'phones.xlsx'  # Đặt tên tệp Excel của bạn ở đây
-df = pd.read_excel(file_path)
-
-# 2. Làm sạch dữ liệu trong cột 'Gia'
-def clean_price(price):
-    # Chuyển về chuỗi nếu dữ liệu không phải chuỗi
-    price = str(price)
-
-    # Loại bỏ các chuỗi không liên quan
-    cleaned_price = (
-        price.replace('Giá niêm yết:', '')
-             .replace('Khi thu cũ lên đời', '')
-             .strip()  # Xóa khoảng trắng thừa ở đầu/cuối
-    )
-
-    return cleaned_price
-
-# Áp dụng hàm clean_price cho cột 'Gia'
-df['Gia'] = df['Gia'].apply(clean_price)
-#Update lại file sau khi đã lọc dữ liệu
-df.to_excel('phones.xlsx', index=False)
-
-print(df[['Ten', 'Gia']].head())
-
+# # 1. Đọc dữ liệu từ file Excel
+# file_path = 'phones.xlsx'  # Đặt tên tệp Excel của bạn ở đây
+# # df = pd.read_excel(file_path)
+#
+# # 2. Làm sạch dữ liệu trong cột 'Gia'
+# def clean_price(price):
+#     # Chuyển về chuỗi nếu dữ liệu không phải chuỗi
+#     price = str(price)
+#
+#     # Loại bỏ các chuỗi không liên quan
+#     cleaned_price = (
+#         price.replace('Giá niêm yết:', '')
+#              .replace('Khi thu cũ lên đời', '')
+#              .strip()  # Xóa khoảng trắng thừa ở đầu/cuối
+#     )
+#
+#     return cleaned_price
+#
+# # Áp dụng hàm clean_price cho cột 'Gia'
+# df['Gia'] = df['Gia'].apply(clean_price)
+# #Update lại file sau khi đã lọc dữ liệu
+# df.to_excel('phones.xlsx', index=False)
+#
+# print(df[['Ten', 'Gia']].head())
+#
