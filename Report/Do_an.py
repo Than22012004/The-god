@@ -20,23 +20,14 @@ chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--disable-notifications")  # Tắt thông báo
-# Khởi tạo kết nối MongoDB
+# kết nối MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 db = client["phone_database"]
 phones_collection = db["phones"]
 
-# Khởi tạo kết nối MongoDB
-client = MongoClient("mongodb://localhost:27017/")
-db = client["phone_database"]
-phones_collection = db["phones"]
 
 # Khởi tạo DataFrame
-<<<<<<< HEAD
 d = pd.DataFrame({'Ten': [], 'Gia': [],'Tinh_trang':[], 'Kich_thuoc_man_hinh': [], 'Cong_nghe_man_hinh': [], 'Camera_truoc': [], 'Camera_sau': [], 'Chipset': [], 'Cong_nghe_NFC': [], 'Dung_luong_ram': [], 'Bo_nho_trong': [], 'Dung_luong_pin': [], 'The_SIM': [], 'Do_phan_giai_man_hinh': [], 'Tinh_nang_man_hinh': [], 'Loai_CPU': []})
-=======
-d = pd.DataFrame({'Ten': [], 'Gia': [], 'Kich_thuoc_man_hinh': [], 'Cong_nghe_man_hinh': [], 'Camera_truoc': [], 'Camera_sau': [], 'Chipset': [], 'Cong_nghe_NFC': [], 'Dung_luong_ram': [], 'Bo_nho_trong': [], 'Dung_luong_pin': [], 'The_SIM': [], 'Do_phan_giai_man_hinh': [], 'Tinh_nang_man_hinh': [], 'Loai_CPU': []})
->>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
-
 
 
 def get_phones_links():
@@ -49,42 +40,40 @@ def get_phones_links():
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "a")))
         body = driver.find_element(By.TAG_NAME, "body")
 
-<<<<<<< HEAD
-       #Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
-=======
-        Lặp lại quá trình click "Xem thêm" và cuộn trang để tải thêm sản phẩm
->>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
-        for k in range(60):  # Số lần thử click "Xem thêm" và tải thêm sản phẩm
+        while True:  # Vòng lặp tiếp tục cho đến khi không còn nút 'Xem thêm'
+            found_more = False  # Cờ để kiểm tra có tìm thấy nút 'Xem thêm' không
+
             try:
-                # Lấy tất cả các button trên trang
-                buttons = driver.find_elements(By.TAG_NAME, "a")
-        
+                # Xóa overlay nếu có
                 try:
-                    # Xóa overlay nếu có
                     overlay = driver.find_element(By.CLASS_NAME, "header-overlay")
                     driver.execute_script("arguments[0].style.display = 'none';", overlay)
                 except NoSuchElementException:
-                    print("Không tìm thấy phần tử che khuất, tiếp tục nhấp vào nút 'Xem thêm'.")
-<<<<<<< HEAD
+                    print("Không tìm thấy overlay, tiếp tục nhấp vào nút 'Xem thêm'.")
 
-=======
-        
->>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
-                try:
-                    # Thử click vào nút 'Xem thêm'
-                    WebDriverWait(driver, 10, poll_frequency=1).until(
-                        EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Xem thêm')]"))
-                    ).click()
-                except TimeoutException:
-                    print("Không còn nút 'Xem thêm' hoặc hết sản phẩm.")
+                # Thử tìm và click vào nút 'Xem thêm'
+                xem_them_button = WebDriverWait(driver, 10, poll_frequency=1).until(
+                    EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Xem thêm')]"))
+                )
+                xem_them_button.click()
+                found_more = True  # Đánh dấu đã click thành công
+                print("Đã nhấp vào nút 'Xem thêm', đang tải thêm sản phẩm...")
+                #time.sleep(0.01)  # Chờ để trang tải thêm sản phẩm
+
+            except TimeoutException:
+                print("Không còn nút 'Xem thêm' hoặc hết sản phẩm.")
+                break  # Thoát vòng while nếu không còn nút 'Xem thêm'
+
             except Exception as e:
-                print(f"Lỗi khi nhấn vào nút xem thêm {e}")
+                print('Không nhấp vào nút xem thêm được !')
+                continue
 
-        # Tiếp tục di chuyển xuống dưới trang để tải sản phẩm
+        # Cuộn xuống để tải thêm sản phẩm nếu có
         for i in range(50):
             body.send_keys(Keys.ARROW_DOWN)
             time.sleep(0.01)
-        # Lấy các liên kết sau khi đã cuộn và nhấp vào "Xem thêm"
+
+        # Lấy các liên kết sau khi đã tải hết sản phẩm
         list_links = driver.find_elements(By.CLASS_NAME, "product-info")
         for item in list_links:
             try:
@@ -102,22 +91,18 @@ def get_phones_links():
         print(f"Lỗi khi truy cập trang: {e}")
 
     finally:
-        driver.quit()
+        driver.quit()  # Đóng trình duyệt sau khi hoàn tất
 
     return links
+
+
 # Hàm thêm sản phẩm vào MongoDB
-<<<<<<< HEAD
-def them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
+def them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set,
+         NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
     phone_data = {
         "Ten": name,
         "Gia": gia,
         "Tinh_trang":stock_count,
-=======
-def them(name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu):
-    phone_data = {
-        "Ten": name,
-        "Gia": gia,
->>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
         "Kich_thuoc_man_hinh": kich_thuoc,
         "Cong_nghe_man_hinh": CN_manhinh,
         "Camera_truoc": cam_truoc,
@@ -155,7 +140,7 @@ def get_phones_info(link):
         for i in range(60):
             body.send_keys(Keys.ARROW_DOWN)
             time.sleep(0.01)
-        # Lay ten san pham
+        # Lấy tên sản phẩm
         try:
             name = driver.find_element(By.TAG_NAME, "h1").text
         except:
@@ -167,19 +152,19 @@ def get_phones_info(link):
             gia = driver.find_element(By.CLASS_NAME, "tpt---price").text
         except:
             try:
-                # Nếu vẫn không tìm thấy,thử với "text-price"
+                # Nếu không tìm thấy,thử với "tpt---sale-price"
                 gia = driver.find_element(By.XPATH, "tpt---sale-price").text
             except :
                 try:
-                    # Nếu không tìm thấy, thử với "tpt---sale-price"
+                    # Nếu không tìm thấy, thử với "//*[@id="blockProductCTA"]/div[2]/p/span"
                     gia = driver.find_element(By.XPATH, '//*[@id="blockProductCTA"]/div[2]/p/span').text
                 except:
                     try:
-                        # Nếu không tìm thấy, thử với "tpt---sale-price"
+                        # Nếu không tìm thấy, thử với "product__price--show"
                         gia = driver.find_element(By.CLASS_NAME, 'product__price--show').text
                     except:
                         gia = ""
-        # Số cửa hàng có hàng sẵn box-on-stock-count
+        # Số cửa hàng có hàng sẵn
         try:
             stock_count = driver.find_element(By.CLASS_NAME, "box-on-stock-count").text
         except:
@@ -266,7 +251,6 @@ def get_phones_info(link):
             cpu = driver.find_element(By.XPATH,
                                       "//li[p[text()='Loại CPU']]/div").text
         except:
-<<<<<<< HEAD
             cpu = "không có thông tin"
         # Tạo dictionary chứa thông tin sản phẩm
         phones = {'Ten': name, 'Gia': gia,'Tinh_trang':stock_count,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
@@ -274,18 +258,6 @@ def get_phones_info(link):
                   'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
         them(name, gia,stock_count, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu)
         return phones
-=======
-            cpu = ""
-
-
-        # # Tao dictionary chua tt dien thoai
-        # phones = {'Ten': name, 'Gia': gia,'Kich_thuoc_man_hinh':kich_thuoc,'Cong_nghe_man_hinh':CN_manhinh,
-        #           'Camera_truoc':cam_truoc,'Camera_sau':cam_sau,'Chipset':chip_set,'Cong_nghe_NFC':NFC,'Dung_luong_ram':ram,'Bo_nho_trong':rom,
-        #           'Dung_luong_pin':pin,'The_SIM':sim,'Do_phan_giai_man_hinh':do_phan_giai,'Tinh_nang_man_hinh':tinh_nang_mh,'Loai_CPU':cpu}
-        them(name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu)
-        return name, gia, kich_thuoc, CN_manhinh, cam_truoc, cam_sau, chip_set, NFC, ram, rom, pin, sim, do_phan_giai, tinh_nang_mh, cpu
-
->>>>>>> 19be3000bf7d81bc49a7990d87e853c7ee2ff099
     except Exception as e:
         print(f"Lỗi khi truy cập {link}: {e}")
         return None
@@ -304,32 +276,34 @@ for phones in results:
     if phones:
         d = pd.concat([d, pd.DataFrame([phones])], ignore_index=True)
 
-file_name = 'phones1.xlsx'
+file_name = 'phones.xlsx'
 d.to_excel(file_name, index=False)
 print('Data đã được ghi thành công!!!!.')
 
-# 1. Đọc dữ liệu từ file Excel
-file_path = 'phones.xlsx'  # Đặt tên tệp Excel của bạn ở đây
-df = pd.read_excel(file_path)
 
-# 2. Làm sạch dữ liệu trong cột 'Gia'
-def clean_price(price):
-    # Chuyển về chuỗi nếu dữ liệu không phải chuỗi
-    price = str(price)
 
-    # Loại bỏ các chuỗi không liên quan
-    cleaned_price = (
-        price.replace('Giá niêm yết:', '')
-             .replace('Khi thu cũ lên đời', '')
-             .strip()  # Xóa khoảng trắng thừa ở đầu/cuối
-    )
-
-    return cleaned_price
-
-# Áp dụng hàm clean_price cho cột 'Gia'
-df['Gia'] = df['Gia'].apply(clean_price)
-#Update lại file sau khi đã lọc dữ liệu
-df.to_excel('phones.xlsx', index=False)
-
-print(df[['Ten', 'Gia']].head())
+# # 1. Đọc dữ liệu từ file Excel
+# file_path = 'phones.xlsx'  # Đặt tên tệp Excel của bạn ở đây
+# df = pd.read_excel(file_path)
+#
+# # 2. Làm sạch dữ liệu trong cột 'Gia'
+# def clean_price(price):
+#     # Chuyển về chuỗi nếu dữ liệu không phải chuỗi
+#     price = str(price)
+#
+#     # Loại bỏ các chuỗi không liên quan
+#     cleaned_price = (
+#         price.replace('Giá niêm yết:', '')
+#              .replace('Khi thu cũ lên đời', '')
+#              .strip()  # Xóa khoảng trắng thừa ở đầu/cuối
+#     )
+#
+#     return cleaned_price
+#
+# # Áp dụng hàm clean_price cho cột 'Gia'
+# df['Gia'] = df['Gia'].apply(clean_price)
+# #Update lại file sau khi đã lọc dữ liệu
+# df.to_excel('phones.xlsx', index=False)
+#
+# print(df[['Ten', 'Gia']].head())
 
